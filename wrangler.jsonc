@@ -16,6 +16,13 @@
 		"not_found_handling": "single-page-application",
 		"run_worker_first": ["/api/*"]
 	},
+	"workers_dev": false,
+	"routes": [
+		{
+			"pattern": "nav.imjj.cc",
+			"custom_domain": true
+		}
+	],
 	"vars": {
 		"CF_ACCOUNT_ID": "",
 		"CACHE_TTL_SECONDS": "300",
