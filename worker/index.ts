@@ -11,6 +11,7 @@ type Env = {
 	ASSETS: Fetcher;
 	CF_ACCOUNT_ID: string;
 	CACHE_TTL_SECONDS?: string;
+	ENABLE_DEMO_MODE?: string;
 	CF_NAV_API_TOKEN: string;
 };
 
@@ -36,6 +37,10 @@ export default {
 } satisfies ExportedHandler<Env>;
 
 async function handleSitesRequest(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+	if (env.ENABLE_DEMO_MODE === 'true') {
+		return jsonResponse(buildDemoPayload());
+	}
+
 	const cache = caches.default;
 	const url = new URL(request.url);
 	const cacheKey = new Request(CACHE_URL, { headers: { accept: 'application/json' } });
@@ -70,6 +75,58 @@ async function handleSitesRequest(request: Request, env: Env, ctx: ExecutionCont
 			503,
 		);
 	}
+}
+
+function buildDemoPayload(): NavigationResponse {
+	return {
+		groups: [
+			{
+				id: '常用',
+				title: '常用',
+				items: [
+					{
+						group: '常用',
+						title: '主站',
+						hostname: 'example.com',
+						url: 'https://example.com',
+						recordType: 'A',
+						proxied: true,
+						comment: '[nav] 主站',
+						zoneName: 'example.com',
+					},
+					{
+						group: '常用',
+						title: '文档',
+						hostname: 'docs.example.com',
+						url: 'https://docs.example.com',
+						recordType: 'CNAME',
+						proxied: true,
+						comment: '[nav] 文档',
+						zoneName: 'example.com',
+					},
+				],
+			},
+			{
+				id: '运维',
+				title: '运维',
+				items: [
+					{
+						group: '运维',
+						title: '控制台',
+						hostname: 'panel.example.com',
+						url: 'https://panel.example.com',
+						recordType: 'CNAME',
+						proxied: false,
+						comment: '[nav/运维] 控制台',
+						zoneName: 'example.com',
+					},
+				],
+			},
+		],
+		cachedAt: new Date().toISOString(),
+		stale: false,
+		source: 'cache',
+	};
 }
 
 async function buildNavigationPayload(env: Env): Promise<NavigationResponse> {

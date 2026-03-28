@@ -26,6 +26,14 @@ npm run dev
 
 建议把只读 token 放到 `.dev.vars`，格式参考 [`.dev.vars.example`](./.dev.vars.example)。
 
+如果你只是先看页面效果，可以在 `.dev.vars` 里保留：
+
+```bash
+ENABLE_DEMO_MODE=true
+```
+
+这样 `/api/sites` 会返回内置演示数据，不依赖任何 Cloudflare 凭证。
+
 ## Cloudflare 变量与密钥
 
 `wrangler.jsonc` 里保留了以下变量：

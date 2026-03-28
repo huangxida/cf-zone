@@ -1,1 +1,2 @@
+ENABLE_DEMO_MODE=true
 CF_NAV_API_TOKEN=replace-with-runtime-readonly-token
