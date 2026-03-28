@@ -14,8 +14,18 @@
 	"assets": {
 		"binding": "ASSETS",
 		"not_found_handling": "single-page-application",
-		"run_worker_first": ["/api/*"]
+		"run_worker_first": [
+			"/api/*"
+		]
 	},
+	"kv_namespaces": [
+		{
+			"binding": "NAV_CACHE_KV",
+			"id": "8bde19bb6046450dbb776e9129a6fabf",
+			"preview_id": "10ef21a8678e4f93a8a91b27f7a4d815",
+			"remote": true
+		}
+	],
 	"workers_dev": false,
 	"routes": [
 		{
@@ -25,9 +35,10 @@
 	],
 	"vars": {
 		"CF_ACCOUNT_ID": "",
-		"CACHE_TTL_SECONDS": "300",
+		"CACHE_TTL_SECONDS": "2592000",
 		"ENABLE_DEMO_MODE": "false",
-		"CF_ACCESS_TEAM_DOMAIN": ""
+		"CF_ACCESS_TEAM_DOMAIN": "huangxida.cloudflareaccess.com",
+		"CF_ACCESS_AUD": "d9d12f33df83f476eccbb34127309d4fbe4ce7bf3e616f0040833be88dc02d85"
 	},
 	"observability": {
 		"enabled": true

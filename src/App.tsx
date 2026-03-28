@@ -1,6 +1,12 @@
 import { createElement, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import type { CurrentUserProfile, CurrentUserResponse } from '../shared/current-user';
-import type { NavigationGroup, NavigationItem, NavigationResponse } from '../shared/navigation';
+import type {
+	NavigationBanner,
+	NavigationErrorResponse,
+	NavigationGroup,
+	NavigationItem,
+	NavigationResponse,
+} from '../shared/navigation';
 
 type Status = 'idle' | 'loading' | 'ready' | 'error';
 type UserStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -22,6 +28,10 @@ type MaterialMenuElement = HTMLElement & {
 	show: () => void;
 	close: () => void;
 };
+type LocalCacheResult = {
+	payload: NavigationResponse | null;
+	banners: NavigationBanner[];
+};
 
 const TYPE_SORT_ORDER = ['featured', 'all', 'A', 'AAAA', 'CNAME', 'HTTPS', 'MX', 'TXT', 'CAA', 'NS', 'SRV'];
 const LOCAL_CACHE_KEY = 'cf-zone:navigation-cache:v1';
@@ -34,12 +44,25 @@ const THEME_OPTIONS: ThemeOption[] = [
 	{ value: 'dark', label: '黑色', icon: 'dark_mode' },
 ];
 
+class NavigationRequestError extends Error {
+	status: number;
+	banners: NavigationBanner[];
+
+	constructor(message: string, status = 500, banners: NavigationBanner[] = []) {
+		super(message);
+		this.name = 'NavigationRequestError';
+		this.status = status;
+		this.banners = banners;
+	}
+}
+
 export default function App() {
 	const [status, setStatus] = useState<Status>('idle');
 	const [userStatus, setUserStatus] = useState<UserStatus>('idle');
 	const [clock, setClock] = useState(() => Date.now());
 	const [query, setQuery] = useState('');
 	const [payload, setPayload] = useState<NavigationResponse | null>(null);
+	const [navigationBanners, setNavigationBanners] = useState<NavigationBanner[]>([]);
 	const [currentUser, setCurrentUser] = useState<CurrentUserResponse | null>(null);
 	const [errorMessage, setErrorMessage] = useState('');
 	const [userErrorMessage, setUserErrorMessage] = useState('');
@@ -79,19 +102,23 @@ export default function App() {
 	useEffect(() => {
 		const controller = new AbortController();
 		const cached = readLocalCache();
+		setNavigationBanners(cached.banners);
 
-		if (cached) {
-			setPayload(cached);
+		if (cached.payload) {
+			setPayload(cached.payload);
 			setStatus('ready');
-		} else {
-			setStatus('loading');
+			return () => controller.abort();
 		}
+
+		setStatus('loading');
 
 		void loadNavigationData({
 			force: false,
 			signal: controller.signal,
-			hasExistingPayload: Boolean(cached),
+			hasExistingPayload: Boolean(cached.payload),
+			existingBanners: cached.banners,
 			setErrorMessage,
+			setNavigationBanners,
 			setIsRefreshing,
 			setPayload,
 			setStatus,
@@ -167,12 +194,18 @@ export default function App() {
 
 	const currentTypeLabel = typeOptions.find((option) => option.value === activeTypeFilter)?.label ?? '精选';
 	const currentThemeOption = THEME_OPTIONS.find((option) => option.value === themeMode) ?? THEME_OPTIONS[0];
+	const visibleNavigationBanners = useMemo(
+		() => mergeNavigationBanners(payload?.banners ?? [], navigationBanners),
+		[navigationBanners, payload?.banners],
+	);
 
 	async function handleForceRefresh() {
 		await loadNavigationData({
 			force: true,
 			hasExistingPayload: Boolean(payload),
+			existingBanners: navigationBanners,
 			setErrorMessage,
+			setNavigationBanners,
 			setIsRefreshing,
 			setPayload,
 			setStatus,
@@ -305,11 +338,13 @@ export default function App() {
 					)}
 				</div>
 
+				{visibleNavigationBanners.length > 0 && <NavigationBannerStack banners={visibleNavigationBanners} />}
+
 				<div className="status-bar">
 					<div className="status-meta">
-						{payload && <span className="status-text">{formatUpdatedDisplay(payload.cachedAt, clock)}</span>}
+						{payload && <span className="status-text">{formatUpdatedDisplay(payload.lastUpdatedAt, clock)}</span>}
 						{payload?.stale && <span className="status-chip">缓存回退</span>}
-						{errorMessage && status === 'ready' && <span className="status-chip is-warning">{errorMessage}</span>}
+						{false && errorMessage && status === 'ready' && <span className="status-chip is-warning">{errorMessage}</span>}
 					</div>
 				</div>
 			</section>
@@ -664,6 +699,27 @@ function SearchIcon() {
 	);
 }
 
+function NavigationBannerStack({ banners }: { banners: NavigationBanner[] }) {
+	return (
+		<div className="banner-stack" role="status" aria-live="polite">
+			{banners.map((banner) => (
+				<md-outlined-card key={buildBannerKey(banner)} className={`banner-card banner-${banner.level}`}>
+					<div className="banner-card-inner">
+						<md-icon className="banner-icon-symbol" aria-hidden="true">
+							{getBannerIcon(banner.level)}
+						</md-icon>
+						<div className="banner-copy">
+							<p className="banner-label">{getBannerLabel(banner.level)}</p>
+							<p className="banner-message">{banner.message}</p>
+							{banner.detail && <p className="banner-detail">{banner.detail}</p>}
+						</div>
+					</div>
+				</md-outlined-card>
+			))}
+		</div>
+	);
+}
+
 function buildTypeOptions(group: NavigationGroup | null): FilterOption[] {
 	if (!group) {
 		return [];
@@ -735,7 +791,7 @@ function compareTypeOrder(left: string, right: string) {
 	return left.localeCompare(right, 'en');
 }
 
-function formatUpdatedDisplay(value: string, now = Date.now()) {
+function formatUpdatedDisplay(value: string | null | undefined, now = Date.now()) {
 	const parsed = Date.parse(value);
 	if (!Number.isFinite(parsed)) {
 		return '上次更新时间: --';
@@ -796,31 +852,62 @@ function applyThemePreference(value: ThemeMode) {
 	document.documentElement.dataset.theme = value;
 }
 
-function readLocalCache(): NavigationResponse | null {
+function readLocalCache(): LocalCacheResult {
 	if (typeof window === 'undefined') {
-		return null;
+		return { payload: null, banners: [] };
 	}
 
 	try {
 		const raw = window.localStorage.getItem(LOCAL_CACHE_KEY);
 		if (!raw) {
-			return null;
+			return { payload: null, banners: [] };
 		}
 
-		return JSON.parse(raw) as NavigationResponse;
-	} catch {
-		return null;
+		return {
+			payload: normalizeNavigationResponse(JSON.parse(raw)),
+			banners: [],
+		};
+	} catch (error) {
+		return {
+			payload: null,
+			banners: [
+				createClientBanner(
+					'local-cache-read-failed',
+					'warning',
+					'读取浏览器本地缓存失败，本次将直接请求服务端数据。',
+					getClientErrorDetail(error),
+				),
+			],
+		};
 	}
 }
 
-function writeLocalCache(payload: NavigationResponse) {
+function writeLocalCache(payload: NavigationResponse): NavigationBanner[] {
 	if (typeof window === 'undefined') {
-		return;
+		return [];
 	}
 
 	try {
-		window.localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(payload));
-	} catch {
+		window.localStorage.setItem(
+			LOCAL_CACHE_KEY,
+			JSON.stringify({
+				groups: payload.groups,
+				lastUpdatedAt: payload.lastUpdatedAt,
+				stale: false,
+				source: 'cache',
+				banners: [],
+			} satisfies NavigationResponse),
+		);
+		return [];
+	} catch (error) {
+		return [
+			createClientBanner(
+				'local-cache-write-failed',
+				'warning',
+				'写入浏览器本地缓存失败，刷新页面后可能需要重新请求数据。',
+				getClientErrorDetail(error),
+			),
+		];
 	}
 }
 
@@ -828,7 +915,9 @@ async function loadNavigationData({
 	force,
 	signal,
 	hasExistingPayload,
+	existingBanners,
 	setErrorMessage,
+	setNavigationBanners,
 	setIsRefreshing,
 	setPayload,
 	setStatus,
@@ -836,12 +925,14 @@ async function loadNavigationData({
 	force: boolean;
 	signal?: AbortSignal;
 	hasExistingPayload: boolean;
+	existingBanners: NavigationBanner[];
 	setErrorMessage: (value: string) => void;
+	setNavigationBanners: (value: NavigationBanner[]) => void;
 	setIsRefreshing: (value: boolean) => void;
 	setPayload: (value: NavigationResponse) => void;
 	setStatus: (value: Status) => void;
 }) {
-	setIsRefreshing(true);
+	setIsRefreshing(force);
 	setErrorMessage('');
 
 	if (!hasExistingPayload) {
@@ -849,9 +940,9 @@ async function loadNavigationData({
 	}
 
 	try {
-		const data = await requestSites(force, signal);
+		const data = await requestSitesV2(force, signal);
 		setPayload(data);
-		writeLocalCache(data);
+		setNavigationBanners(mergeNavigationBanners(retainPersistentBanners(existingBanners), writeLocalCache(data)));
 		setStatus('ready');
 	} catch (error) {
 		if (signal?.aborted) {
@@ -860,12 +951,17 @@ async function loadNavigationData({
 
 		const message = error instanceof Error ? error.message : String(error);
 		setErrorMessage(message);
+		setNavigationBanners(
+			mergeNavigationBanners(retainPersistentBanners(existingBanners), getRequestErrorBanners(error, message)),
+		);
 
 		if (!hasExistingPayload) {
 			setStatus('error');
 		}
 	} finally {
-		setIsRefreshing(false);
+		if (force) {
+			setIsRefreshing(false);
+		}
 	}
 }
 
@@ -910,14 +1006,46 @@ async function requestSites(force: boolean, signal?: AbortSignal): Promise<Navig
 		throw new Error('导航数据加载失败');
 	}
 
-	return (await response.json()) as NavigationResponse;
+	const payload = normalizeNavigationResponse(await response.json());
+	if (!payload) {
+		throw new Error('导航数据格式不正确');
+	}
+
+	return payload;
+}
+
+async function requestSitesV2(
+	force: boolean,
+	signal?: AbortSignal,
+): Promise<NavigationResponse> {
+	const endpoint = force ? '/api/sites?refresh=1' : '/api/sites';
+	const response = await fetch(endpoint, { signal });
+	const rawPayload = (await response.json().catch(() => null)) as NavigationResponse | NavigationErrorResponse | null;
+
+	if (!response.ok) {
+		const normalizedError = normalizeNavigationErrorResponse(rawPayload);
+		throw new NavigationRequestError(
+			normalizedError?.error || '导航数据加载失败',
+			response.status,
+			normalizedError?.banners ?? [],
+		);
+	}
+
+	const payload = normalizeNavigationResponse(rawPayload);
+	if (!payload) {
+		throw new NavigationRequestError('导航数据格式不正确', response.status, [
+			createClientBanner('navigation-payload-invalid', 'error', '服务端返回了无法识别的导航数据。'),
+		]);
+	}
+
+	return payload;
 }
 
 async function requestCurrentUser(signal?: AbortSignal): Promise<CurrentUserResponse> {
 	const response = await fetch('/api/me', { signal });
 
 	if (!response.ok) {
-		throw new Error('用户信息加载失败');
+		throw new Error('鐢ㄦ埛淇℃伅鍔犺浇澶辫触');
 	}
 
 	return (await response.json()) as CurrentUserResponse;
@@ -1042,7 +1170,7 @@ function getUserMenuSupportingText(
 		return '本地预览身份';
 	}
 
-	return '本地预览未接入 Access';
+		return '本地预览未接入 Access';
 }
 
 function describeUserSource(source: CurrentUserResponse['source'], provider: string | null) {
@@ -1056,4 +1184,156 @@ function describeUserSource(source: CurrentUserResponse['source'], provider: str
 		default:
 			return '';
 	}
+}
+
+function normalizeNavigationResponse(value: unknown): NavigationResponse | null {
+	if (!value || typeof value !== 'object') {
+		return null;
+	}
+
+	const candidate = value as {
+		groups?: unknown;
+		lastUpdatedAt?: unknown;
+		cachedAt?: unknown;
+		stale?: unknown;
+		source?: unknown;
+		banners?: unknown;
+	};
+
+	if (!Array.isArray(candidate.groups)) {
+		return null;
+	}
+
+	return {
+		groups: candidate.groups as NavigationGroup[],
+		lastUpdatedAt:
+			typeof candidate.lastUpdatedAt === 'string'
+				? candidate.lastUpdatedAt
+				: typeof candidate.cachedAt === 'string'
+					? candidate.cachedAt
+					: null,
+		stale: typeof candidate.stale === 'boolean' ? candidate.stale : false,
+		source: candidate.source === 'live' ? 'live' : 'cache',
+		banners: normalizeNavigationBanners(candidate.banners),
+	};
+}
+
+function normalizeNavigationErrorResponse(value: unknown): NavigationErrorResponse | null {
+	if (!value || typeof value !== 'object') {
+		return null;
+	}
+
+	const candidate = value as {
+		error?: unknown;
+		detail?: unknown;
+		banners?: unknown;
+	};
+
+	if (typeof candidate.error !== 'string' || !candidate.error.trim()) {
+		return null;
+	}
+
+	return {
+		error: candidate.error,
+		detail: typeof candidate.detail === 'string' ? candidate.detail : undefined,
+		banners: normalizeNavigationBanners(candidate.banners),
+	};
+}
+
+function normalizeNavigationBanners(value: unknown): NavigationBanner[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value
+		.filter((entry): entry is NavigationBanner => Boolean(entry) && typeof entry === 'object')
+		.map((entry) => {
+			const candidate = entry as {
+				code?: unknown;
+				level?: unknown;
+				message?: unknown;
+				detail?: unknown;
+			};
+
+			return {
+				code: typeof candidate.code === 'string' && candidate.code.trim() ? candidate.code : 'unknown',
+				level:
+					candidate.level === 'info' || candidate.level === 'warning' || candidate.level === 'error'
+						? candidate.level
+						: 'warning',
+				message:
+					typeof candidate.message === 'string' && candidate.message.trim()
+						? candidate.message
+						: '出现了一条未命名的状态消息。',
+				detail: typeof candidate.detail === 'string' && candidate.detail.trim() ? candidate.detail : null,
+			};
+		});
+}
+
+function mergeNavigationBanners(...batches: NavigationBanner[][]): NavigationBanner[] {
+	const merged = new Map<string, NavigationBanner>();
+
+	for (const batch of batches) {
+		for (const banner of batch) {
+			merged.set(buildBannerKey(banner), banner);
+		}
+	}
+
+	return [...merged.values()];
+}
+
+function retainPersistentBanners(banners: NavigationBanner[]): NavigationBanner[] {
+	return banners.filter((banner) => banner.code.startsWith('local-cache-'));
+}
+
+function buildBannerKey(banner: NavigationBanner): string {
+	return `${banner.code}:${banner.level}:${banner.message}:${banner.detail ?? ''}`;
+}
+
+function getBannerIcon(level: NavigationBanner['level']): string {
+	switch (level) {
+		case 'error':
+			return 'error';
+		case 'info':
+			return 'info';
+		default:
+			return 'warning';
+	}
+}
+
+function getBannerLabel(level: NavigationBanner['level']) {
+	switch (level) {
+		case 'error':
+			return '错误';
+		case 'info':
+			return '提示';
+		default:
+			return '警告';
+	}
+}
+
+function createClientBanner(
+	code: string,
+	level: NavigationBanner['level'],
+	message: string,
+	detail?: string | null,
+): NavigationBanner {
+	return {
+		code,
+		level,
+		message,
+		detail: detail?.trim() || null,
+	};
+}
+
+function getClientErrorDetail(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
+}
+
+function getRequestErrorBanners(error: unknown, fallbackMessage: string): NavigationBanner[] {
+	if (error instanceof NavigationRequestError && error.banners.length > 0) {
+		return error.banners;
+	}
+
+	return [createClientBanner('navigation-request-failed', 'error', fallbackMessage)];
 }

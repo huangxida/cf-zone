@@ -5,15 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "dev:remote": "node scripts/vite-dev-remote.mjs",
+    "build": "vite build && node scripts/cleanup-worker-build.mjs",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler deploy --config dist/cf_zone/wrangler.json",
+    "deploy": "npm run build && wrangler deploy --config dist/cf_zone/wrangler.json --keep-vars",
     "test": "vitest run",
     "test:watch": "vitest",
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
     "@material/web": "^2.4.1",
+    "jose": "^6.2.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },

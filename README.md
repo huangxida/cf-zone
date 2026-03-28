@@ -11,8 +11,8 @@
 - 支持搜索标题、主机名、记录值和记录类型
 - 可跳转记录直接打开站点，不可跳转记录支持点击复制记录值
 - 前端使用 `localStorage` 做最近一次成功结果缓存
-- Worker 侧默认缓存 DNS 数据 `300` 秒
-- 提供强制刷新按钮和更新时间显示
+- Worker 侧使用 Cloudflare KV 持久化缓存 DNS 数据，默认 TTL 为 `30` 天
+- 提供强制刷新按钮；“上次更新时间”表示最近一次成功回源刷新时间，读取缓存不会更新该时间
 - 支持 `跟随系统 / 白色 / 黑色` 主题
 - 右上角提供用户头像菜单，支持显示登录用户信息和退出登录
 - 本地预览下若未接入 Access，可自动走 mock 身份兜底
@@ -46,7 +46,7 @@ Worker 提供当前用户接口，优先级如下：
 1. Cloudflare Access `get-identity`
 2. Access 请求头回退
 3. 本地 mock 用户
-4. 本地 `localhost / 127.0.0.1` 预览时，使用 `CF_AUTH_EMAIL` 兜底
+4. 本地 `localhost / 127.0.0.1` 预览时，使用 `MOCK_USER_*` 或默认 preview 用户兜底
 
 正式上线后，右上角用户菜单会优先展示真实 Access 用户信息；如果 Access 返回头像，则直接显示头像，否则回退为缩写头像。
 
@@ -156,13 +156,18 @@ npm run deploy
 
 1. 在 Cloudflare Dashboard 中创建 Worker：`cf-zone`
 2. 连接 GitHub 仓库：`huangxida/cf-zone`
-3. 生产分支使用 `main`
+3. Workers Builds 的生产分支仍使用 `main`
 4. 配置变量与密钥：
    - `CF_ACCOUNT_ID`
    - `CACHE_TTL_SECONDS`
    - `CF_ACCESS_TEAM_DOMAIN`
    - `CF_NAV_API_TOKEN`
-5. 绑定自定义域名，例如：
+5. 创建并绑定一个 Workers KV namespace 到 `NAV_CACHE_KV`
+
+如果要改为“打新 tag 才发布生产环境”，请使用 `.github/workflows/deploy.yml`。
+当前仓库的 GitHub Actions 已配置为在推送新 tag 时执行部署。
+6. 在 `wrangler.jsonc` 中替换 `REPLACE_WITH_NAV_CACHE_KV_ID` / `REPLACE_WITH_NAV_CACHE_KV_PREVIEW_ID`
+7. 绑定自定义域名，例如：
    - `nav.example.com`
 
 ## Cloudflare Access

@@ -3,6 +3,7 @@ import '@material/web/button/filled-tonal-button.js';
 import '@material/web/button/outlined-button.js';
 import '@material/web/icon/icon.js';
 import '@material/web/iconbutton/outlined-icon-button.js';
+import '@material/web/labs/card/outlined-card.js';
 import '@material/web/menu/menu-item.js';
 import '@material/web/menu/menu.js';
 import '@material/web/progress/circular-progress.js';

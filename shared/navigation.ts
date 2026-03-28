@@ -6,6 +6,7 @@ const HOST_PATHS: Record<string, string> = {
 	'dash-los1.imjj.cc': '/mKJauEunDk',
 	'dash-los2.imjj.cc': '/HUiDFyB6UM',
 	'dash-ca1.imjj.cc': '/MiAd3DmRn8',
+	'dash-s2a.imjj.cc': '/admin/dashboard',
 };
 
 const FEATURED_EXCLUDED_HOSTNAME_PREFIXES = ['sub-'];
@@ -29,11 +30,27 @@ export type NavigationGroup = {
 	items: NavigationItem[];
 };
 
+export type NavigationBannerLevel = 'info' | 'warning' | 'error';
+
+export type NavigationBanner = {
+	code: string;
+	level: NavigationBannerLevel;
+	message: string;
+	detail?: string | null;
+};
+
 export type NavigationResponse = {
 	groups: NavigationGroup[];
-	cachedAt: string;
+	lastUpdatedAt: string | null;
 	stale: boolean;
 	source: 'live' | 'cache';
+	banners: NavigationBanner[];
+};
+
+export type NavigationErrorResponse = {
+	error: string;
+	detail?: string;
+	banners?: NavigationBanner[];
 };
 
 export type CloudflareZone = {

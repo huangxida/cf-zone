@@ -1,6 +1,7 @@
 ENABLE_DEMO_MODE=true
 CF_NAV_API_TOKEN=replace-with-runtime-readonly-token
 CF_ACCESS_TEAM_DOMAIN=your-team.cloudflareaccess.com
+CF_ACCESS_AUD=replace-with-access-aud-tag
 MOCK_USER_NAME=本地预览
 MOCK_USER_EMAIL=preview@example.com
 # Optional avatar URL for local preview:

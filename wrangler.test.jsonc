@@ -9,9 +9,18 @@
 		"directory": "./public",
 		"run_worker_first": ["/api/*"]
 	},
+	"kv_namespaces": [
+		{
+			"binding": "NAV_CACHE_KV",
+			"id": "test-nav-cache-kv",
+			"preview_id": "test-nav-cache-kv-preview"
+		}
+	],
 	"vars": {
 		"CF_ACCOUNT_ID": "test-account-id",
-		"CACHE_TTL_SECONDS": "300",
-		"ENABLE_DEMO_MODE": "false"
+		"CACHE_TTL_SECONDS": "2592000",
+		"ENABLE_DEMO_MODE": "false",
+		"CF_ACCESS_TEAM_DOMAIN": "test.cloudflareaccess.com",
+		"CF_ACCESS_AUD": "test-access-aud"
 	}
 }
