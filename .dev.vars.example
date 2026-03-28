@@ -1,5 +1,10 @@
 ENABLE_DEMO_MODE=true
 CF_NAV_API_TOKEN=replace-with-runtime-readonly-token
+CF_ACCESS_TEAM_DOMAIN=your-team.cloudflareaccess.com
+MOCK_USER_NAME=本地预览
+MOCK_USER_EMAIL=preview@example.com
+# Optional avatar URL for local preview:
+# MOCK_USER_AVATAR_URL=https://example.com/avatar.jpg
 # Or use the legacy Global API Key flow for local preview only:
 # CF_AUTH_EMAIL=your-cloudflare-email@example.com
 # CF_GLOBAL_API_KEY=replace-with-global-api-key

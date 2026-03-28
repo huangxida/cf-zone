@@ -19,7 +19,8 @@
 	"vars": {
 		"CF_ACCOUNT_ID": "",
 		"CACHE_TTL_SECONDS": "300",
-		"ENABLE_DEMO_MODE": "false"
+		"ENABLE_DEMO_MODE": "false",
+		"CF_ACCESS_TEAM_DOMAIN": ""
 	},
 	"observability": {
 		"enabled": true

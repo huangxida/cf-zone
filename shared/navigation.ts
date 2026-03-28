@@ -1,16 +1,26 @@
-export const SUPPORTED_RECORD_TYPES = new Set(['A', 'AAAA', 'CNAME', 'HTTPS']);
 export const DEFAULT_GROUP_LABEL = '常用';
 export const COMMENT_PATTERN = /^\[nav(?:\/(?<group>[^[\]]+))?\]\s*(?<title>.*)$/i;
+export const FEATURED_RECORD_TYPES = new Set(['A', 'AAAA', 'CNAME', 'HTTPS']);
+
+const HOST_PATHS: Record<string, string> = {
+	'dash-los1.imjj.cc': '/mKJauEunDk',
+	'dash-los2.imjj.cc': '/HUiDFyB6UM',
+	'dash-ca1.imjj.cc': '/MiAd3DmRn8',
+};
+
+const FEATURED_EXCLUDED_HOSTNAME_PREFIXES = ['sub-'];
 
 export type NavigationItem = {
 	group: string;
 	title: string;
 	hostname: string;
-	url: string;
+	url: string | null;
 	recordType: string;
 	proxied: boolean;
 	comment: string;
 	zoneName: string;
+	value: string;
+	featured: boolean;
 };
 
 export type NavigationGroup = {
@@ -39,8 +49,12 @@ export type CloudflareDnsRecord = {
 	id: string;
 	name: string;
 	type: string;
+	content?: string | null;
 	proxied?: boolean | null;
 	comment?: string | null;
+	priority?: number | null;
+	ttl?: number | null;
+	data?: Record<string, unknown> | null;
 };
 
 export type CloudflareApiEnvelope<T> = {
@@ -76,8 +90,8 @@ export function parseNavigationComment(comment: string | null | undefined): Pars
 	return { group, title };
 }
 
-export function isEligibleRecord(record: CloudflareDnsRecord): boolean {
-	if (!SUPPORTED_RECORD_TYPES.has(record.type)) {
+export function isFeaturedRecord(record: CloudflareDnsRecord): boolean {
+	if (!FEATURED_RECORD_TYPES.has(record.type)) {
 		return false;
 	}
 
@@ -85,27 +99,34 @@ export function isEligibleRecord(record: CloudflareDnsRecord): boolean {
 		return false;
 	}
 
+	if (FEATURED_EXCLUDED_HOSTNAME_PREFIXES.some((prefix) => record.name.startsWith(prefix))) {
+		return false;
+	}
+
 	return parseNavigationComment(record.comment) !== null;
 }
 
-export function normalizeRecord(record: CloudflareDnsRecord, zoneName: string): NavigationItem | null {
-	const parsed = parseNavigationComment(record.comment);
-	if (!parsed || !isEligibleRecord(record)) {
-		return null;
-	}
+export function buildNavigationUrl(hostname: string): string {
+	const pathname = HOST_PATHS[hostname] ?? '';
+	return `https://${hostname}${pathname}`;
+}
 
+export function normalizeRecord(record: CloudflareDnsRecord, zoneName: string): NavigationItem {
+	const parsed = parseNavigationComment(record.comment);
 	const hostname = record.name === zoneName ? zoneName : record.name;
-	const title = parsed.title || hostname;
+	const title = parsed?.title || hostname;
 
 	return {
-		group: parsed.group,
+		group: zoneName,
 		title,
 		hostname,
-		url: `https://${hostname}`,
+		url: buildRecordUrl(record, hostname),
 		recordType: record.type,
 		proxied: Boolean(record.proxied),
 		comment: record.comment?.trim() || '',
 		zoneName,
+		value: formatRecordValue(record),
+		featured: isFeaturedRecord(record),
 	};
 }
 
@@ -120,16 +141,58 @@ export function groupItems(items: NavigationItem[]): NavigationGroup[] {
 
 	return [...grouped.entries()]
 		.sort(([left], [right]) => left.localeCompare(right, 'zh-CN'))
-		.map(([title, groupItems]) => ({
+		.map(([title, zoneItems]) => ({
 			id: title.toLowerCase().replace(/\s+/g, '-'),
 			title,
-			items: groupItems.sort((left, right) => {
+			items: zoneItems.sort((left, right) => {
+				if (left.featured !== right.featured) {
+					return left.featured ? -1 : 1;
+				}
+
 				const leftIsApex = left.hostname === left.zoneName;
 				const rightIsApex = right.hostname === right.zoneName;
 				if (leftIsApex !== rightIsApex) {
 					return leftIsApex ? -1 : 1;
 				}
+
+				const typeComparison = left.recordType.localeCompare(right.recordType, 'en');
+				if (typeComparison !== 0) {
+					return typeComparison;
+				}
+
 				return left.title.localeCompare(right.title, 'zh-CN');
 			}),
 		}));
+}
+
+function buildRecordUrl(record: CloudflareDnsRecord, hostname: string): string | null {
+	if (!FEATURED_RECORD_TYPES.has(record.type)) {
+		return null;
+	}
+
+	if (hostname.startsWith('*.') || hostname.startsWith('_')) {
+		return null;
+	}
+
+	return buildNavigationUrl(hostname);
+}
+
+function formatRecordValue(record: CloudflareDnsRecord): string {
+	if (record.priority !== undefined && record.priority !== null && record.content) {
+		return `${record.priority} ${record.content}`;
+	}
+
+	if (record.content && record.content.trim()) {
+		return record.content.trim();
+	}
+
+	if (record.data && Object.keys(record.data).length > 0) {
+		return JSON.stringify(record.data);
+	}
+
+	if (record.ttl !== undefined && record.ttl !== null) {
+		return `TTL ${record.ttl}`;
+	}
+
+	return '无附加值';
 }
