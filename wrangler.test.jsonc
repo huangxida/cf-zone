@@ -1,0 +1,16 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "cf-zone-test",
+	"main": "./worker/index.ts",
+	"compatibility_date": "2026-03-10",
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+	"assets": {
+		"binding": "ASSETS",
+		"directory": "./public",
+		"run_worker_first": ["/api/*"]
+	},
+	"vars": {
+		"CF_ACCOUNT_ID": "test-account-id",
+		"CACHE_TTL_SECONDS": "300"
+	}
+}
