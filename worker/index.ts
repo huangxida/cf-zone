@@ -12,7 +12,9 @@ type Env = {
 	CF_ACCOUNT_ID: string;
 	CACHE_TTL_SECONDS?: string;
 	ENABLE_DEMO_MODE?: string;
-	CF_NAV_API_TOKEN: string;
+	CF_NAV_API_TOKEN?: string;
+	CF_AUTH_EMAIL?: string;
+	CF_GLOBAL_API_KEY?: string;
 };
 
 const CF_API_BASE = 'https://api.cloudflare.com/client/v4';
@@ -152,7 +154,10 @@ async function buildNavigationPayload(env: Env): Promise<NavigationResponse> {
 }
 
 async function listZones(env: Env): Promise<CloudflareZone[]> {
-	const zones = await fetchPaginated<CloudflareZone>(env, `/zones?account.id=${encodeURIComponent(env.CF_ACCOUNT_ID)}&per_page=50`);
+	const accountQuery = env.CF_ACCOUNT_ID
+		? `account.id=${encodeURIComponent(env.CF_ACCOUNT_ID)}&`
+		: '';
+	const zones = await fetchPaginated<CloudflareZone>(env, `/zones?${accountQuery}per_page=50`);
 	return zones.sort((left, right) => left.name.localeCompare(right.name, 'en'));
 }
 
@@ -164,14 +169,12 @@ async function fetchPaginated<T>(env: Env, path: string): Promise<T[]> {
 	const results: T[] = [];
 	let page = 1;
 	let totalPages = 1;
+	const headers = buildCloudflareHeaders(env);
 
 	do {
 		const separator = path.includes('?') ? '&' : '?';
 		const response = await fetch(`${CF_API_BASE}${path}${separator}page=${page}`, {
-			headers: {
-				authorization: `Bearer ${env.CF_NAV_API_TOKEN}`,
-				accept: 'application/json',
-			},
+			headers,
 		});
 
 		if (!response.ok) {
@@ -190,6 +193,25 @@ async function fetchPaginated<T>(env: Env, path: string): Promise<T[]> {
 	} while (page <= totalPages);
 
 	return results;
+}
+
+function buildCloudflareHeaders(env: Env): HeadersInit {
+	if (env.CF_NAV_API_TOKEN) {
+		return {
+			authorization: `Bearer ${env.CF_NAV_API_TOKEN}`,
+			accept: 'application/json',
+		};
+	}
+
+	if (env.CF_AUTH_EMAIL && env.CF_GLOBAL_API_KEY) {
+		return {
+			'X-Auth-Email': env.CF_AUTH_EMAIL,
+			'X-Auth-Key': env.CF_GLOBAL_API_KEY,
+			accept: 'application/json',
+		};
+	}
+
+	throw new Error('Missing Cloudflare credentials. Provide CF_NAV_API_TOKEN or CF_AUTH_EMAIL + CF_GLOBAL_API_KEY.');
 }
 
 function parseCacheTtl(value: string | undefined): number {
@@ -214,3 +236,7 @@ function jsonResponse(payload: unknown, status = 200): Response {
 		},
 	});
 }
+
+export const __test__ = {
+	buildCloudflareHeaders,
+};

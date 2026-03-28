@@ -26,6 +26,13 @@ npm run dev
 
 建议把只读 token 放到 `.dev.vars`，格式参考 [`.dev.vars.example`](./.dev.vars.example)。
 
+本地也支持 legacy 认证方式：
+
+- `CF_AUTH_EMAIL`
+- `CF_GLOBAL_API_KEY`
+
+当 `CF_NAV_API_TOKEN` 不存在时，Worker 会自动回退到 `X-Auth-Email + X-Auth-Key` 认证。
+
 如果你只是先看页面效果，可以在 `.dev.vars` 里保留：
 
 ```bash
@@ -44,6 +51,11 @@ ENABLE_DEMO_MODE=true
 运行时 secret：
 
 - `CF_NAV_API_TOKEN`: 只读 token，只需 `Zone Read` + `DNS Read`
+
+本地兼容变量：
+
+- `CF_AUTH_EMAIL`: 仅用于本地 legacy 认证调试
+- `CF_GLOBAL_API_KEY`: 仅用于本地 legacy 认证调试，不建议用于正式部署
 
 ## DNS comment 规范
 

@@ -1,2 +1,5 @@
 ENABLE_DEMO_MODE=true
 CF_NAV_API_TOKEN=replace-with-runtime-readonly-token
+# Or use the legacy Global API Key flow for local preview only:
+# CF_AUTH_EMAIL=your-cloudflare-email@example.com
+# CF_GLOBAL_API_KEY=replace-with-global-api-key

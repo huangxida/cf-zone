@@ -29,6 +29,10 @@ export type NavigationResponse = {
 export type CloudflareZone = {
 	id: string;
 	name: string;
+	account?: {
+		id?: string;
+		name?: string;
+	};
 };
 
 export type CloudflareDnsRecord = {

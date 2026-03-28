@@ -1,6 +1,6 @@
 import { createExecutionContext, env, waitOnExecutionContext } from 'cloudflare:test';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import worker from '../worker';
+import worker, { __test__ } from '../worker';
 
 const originalFetch = globalThis.fetch;
 
@@ -104,5 +104,21 @@ describe('worker api', () => {
 
 	it('exposes environment variables via the generated Env type', () => {
 		expect(env.CF_ACCOUNT_ID).toBeTypeOf('string');
+	});
+
+	it('builds global api key headers when token auth is absent', () => {
+		expect(
+			__test__.buildCloudflareHeaders({
+				ASSETS: {} as Fetcher,
+				CF_ACCOUNT_ID: '',
+				CACHE_TTL_SECONDS: '300',
+				CF_AUTH_EMAIL: 'user@example.com',
+				CF_GLOBAL_API_KEY: 'global-key',
+			}),
+		).toEqual({
+			'X-Auth-Email': 'user@example.com',
+			'X-Auth-Key': 'global-key',
+			accept: 'application/json',
+		});
 	});
 });
