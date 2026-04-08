@@ -360,12 +360,7 @@ export default function App() {
 					<EmptyState message="当前筛选条件下没有匹配的 DNS 记录。" />
 				)}
 				{status === 'ready' && currentGroup && filteredItems.length > 0 && (
-					<ZonePanel
-						group={currentGroup}
-						items={filteredItems}
-						activeTypeLabel={currentTypeLabel}
-						isRefreshing={isRefreshing}
-					/>
+					<ZonePanel items={filteredItems} isRefreshing={isRefreshing} />
 				)}
 			</main>
 
@@ -570,27 +565,14 @@ function GoogleIconButton({
 }
 
 function ZonePanel({
-	group,
 	items,
-	activeTypeLabel,
 	isRefreshing,
 }: {
-	group: NavigationGroup;
 	items: NavigationItem[];
-	activeTypeLabel: string;
 	isRefreshing: boolean;
 }) {
 	return (
 		<section className="group-panel">
-			<div className="group-head">
-				<div>
-					<p className="group-label">托管域名</p>
-					<h2>{group.title}</h2>
-				</div>
-				<p className="group-summary">
-					{activeTypeLabel} · {items.length} 条
-				</p>
-			</div>
 			<div className="link-grid">
 				{items.map((item, index) => (
 					<RecordCard key={`${item.hostname}-${item.recordType}-${item.value}`} item={item} index={index} />
@@ -636,8 +618,6 @@ function RecordCard({ item, index }: { item: NavigationItem; index: number }) {
 					</span>
 				</div>
 			</div>
-			{(!isStatic || item.title !== item.hostname) && <p className="link-host">{item.hostname}</p>}
-			{item.comment && <p className="link-note">{item.comment}</p>}
 			{isStatic && <p className="link-detail">{item.value}</p>}
 		</>
 	);

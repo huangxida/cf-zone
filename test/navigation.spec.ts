@@ -116,6 +116,10 @@ describe('normalization and grouping', () => {
 		expect(buildNavigationUrl('dash-s2a.imjj.cc')).toBe('https://dash-s2a.imjj.cc/admin/dashboard');
 	});
 
+	it('normalizes hostnames before applying mapped path suffixes', () => {
+		expect(buildNavigationUrl('DASH-LOS3.IMJJ.CC.')).toBe('https://dash-los3.imjj.cc/b9dd611bac/');
+	});
+
 	it('groups items by managed zone and keeps featured entries first', () => {
 		const groups = groupItems([
 			{

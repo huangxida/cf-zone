@@ -125,8 +125,9 @@ export function isFeaturedRecord(record: CloudflareDnsRecord): boolean {
 }
 
 export function buildNavigationUrl(hostname: string): string {
-	const pathname = HOST_PATHS[hostname] ?? '';
-	return `https://${hostname}${pathname}`;
+	const normalizedHostname = hostname.trim().toLowerCase().replace(/\.+$/, '');
+	const pathname = HOST_PATHS[normalizedHostname] ?? '';
+	return `https://${normalizedHostname}${pathname}`;
 }
 
 export function normalizeRecord(record: CloudflareDnsRecord, zoneName: string): NavigationItem {
