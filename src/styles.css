@@ -256,7 +256,7 @@ input {
 	min-height: 100dvh;
 	padding: clamp(12px, 1.7vw, 16px) clamp(16px, 3vw, 28px) clamp(12px, 1.7vw, 16px);
 	display: grid;
-	grid-template-rows: auto auto minmax(0, 1fr);
+	grid-template-rows: auto auto minmax(0, 1fr) auto;
 	gap: 10px;
 	overflow: hidden;
 }
@@ -777,33 +777,10 @@ md-outlined-icon-button.google-icon-button {
 	position: relative;
 }
 
-.group-head {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	margin-bottom: 10px;
-}
-
-.group-label {
-	margin: 0 0 4px;
-	font-size: 0.82rem;
-	text-transform: uppercase;
-	letter-spacing: 0.12em;
-	color: var(--muted);
-}
-
-.group-head h2,
 .state-panel h2 {
 	margin: 0;
 	font-size: 1.08rem;
 	font-weight: 500;
-}
-
-.group-summary {
-	margin: 0;
-	font-size: 0.84rem;
-	color: var(--muted);
-	white-space: nowrap;
 }
 
 .link-grid {
@@ -837,14 +814,14 @@ md-outlined-icon-button.google-icon-button {
 }
 
 .link-card {
-	height: 160px;
-	min-height: 160px;
-	padding: 18px 18px 16px;
+	height: 124px;
+	min-height: 124px;
+	padding: 16px;
 	border-radius: 18px;
 	border: 1px solid var(--line);
 	background: linear-gradient(180deg, var(--card-bg-start) 0%, var(--card-bg-end) 100%);
 	display: grid;
-	gap: 10px;
+	gap: 8px;
 	align-content: start;
 	box-shadow: var(--card-shadow);
 	transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
@@ -864,8 +841,8 @@ md-outlined-icon-button.google-icon-button {
 }
 
 .link-card.is-static {
-	height: 160px;
-	min-height: 160px;
+	height: 148px;
+	min-height: 148px;
 }
 
 .link-card.copy-card {
@@ -967,34 +944,12 @@ md-outlined-icon-button.google-icon-button {
 	color: var(--badge-dns-text);
 }
 
-.link-host {
-	margin: 0;
-	font-size: 0.86rem;
-	color: var(--muted);
-	word-break: break-all;
-	display: -webkit-box;
-	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 1;
-	overflow: hidden;
-}
-
 .link-detail {
 	margin: 0;
 	font-size: 0.82rem;
 	line-height: 1.45;
 	color: var(--text);
 	word-break: break-all;
-	display: -webkit-box;
-	-webkit-box-orient: vertical;
-	-webkit-line-clamp: 2;
-	overflow: hidden;
-}
-
-.link-note {
-	margin: 0;
-	font-size: 0.78rem;
-	line-height: 1.4;
-	color: var(--muted);
 	display: -webkit-box;
 	-webkit-box-orient: vertical;
 	-webkit-line-clamp: 2;
@@ -1017,6 +972,34 @@ md-outlined-icon-button.google-icon-button {
 
 .state-error {
 	background: var(--state-error-bg);
+}
+
+.app-footer {
+	max-width: 1360px;
+	width: 100%;
+	margin: 0 auto;
+	display: flex;
+	justify-content: center;
+	padding-top: 2px;
+}
+
+.app-version-link {
+	font-size: 0.82rem;
+	line-height: 1.4;
+	color: var(--muted);
+	text-decoration: none;
+	transition: color 0.18s ease;
+}
+
+.app-version-link:hover,
+.app-version-link:focus-visible {
+	color: var(--blue);
+}
+
+.app-version-link:focus-visible {
+	outline: 2px solid var(--focus-outline);
+	outline-offset: 3px;
+	border-radius: 999px;
 }
 
 .loader {
@@ -1066,12 +1049,6 @@ md-outlined-icon-button.google-icon-button {
 
 	.action-row {
 		gap: 8px;
-	}
-
-	.group-head {
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 6px;
 	}
 
 	md-filled-tonal-button.google-filter-button,

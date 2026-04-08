@@ -17,7 +17,7 @@ jobs:
     timeout-minutes: 60
 
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - name: Checkout
@@ -67,3 +67,19 @@ jobs:
             CF_NAV_API_TOKEN
         env:
           CF_NAV_API_TOKEN: ${{ secrets.CF_NAV_API_TOKEN }}
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          if gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release for $TAG_NAME already exists, skipping."
+            exit 0
+          fi
+
+          gh release create "$TAG_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --generate-notes

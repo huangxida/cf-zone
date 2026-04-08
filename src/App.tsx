@@ -1,4 +1,5 @@
 import { createElement, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import packageJson from '../package.json';
 import type { CurrentUserProfile, CurrentUserResponse } from '../shared/current-user';
 import type {
 	NavigationBanner,
@@ -38,6 +39,8 @@ const LOCAL_CACHE_KEY = 'cf-zone:navigation-cache:v1';
 const THEME_PREFERENCE_KEY = 'cf-zone:theme-preference:v1';
 const THEME_MENU_ANCHOR_ID = 'theme-menu-anchor';
 const USER_MENU_ANCHOR_ID = 'user-menu-anchor';
+const APP_VERSION = packageJson.version;
+const GITHUB_RELEASES_URL = 'https://github.com/huangxida/cf-zone/releases';
 const THEME_OPTIONS: ThemeOption[] = [
 	{ value: 'system', label: '跟随系统', icon: 'desktop_windows' },
 	{ value: 'light', label: '白色', icon: 'light_mode' },
@@ -357,14 +360,15 @@ export default function App() {
 					<EmptyState message="当前筛选条件下没有匹配的 DNS 记录。" />
 				)}
 				{status === 'ready' && currentGroup && filteredItems.length > 0 && (
-					<ZonePanel
-						group={currentGroup}
-						items={filteredItems}
-						activeTypeLabel={currentTypeLabel}
-						isRefreshing={isRefreshing}
-					/>
+					<ZonePanel items={filteredItems} isRefreshing={isRefreshing} />
 				)}
 			</main>
+
+			<footer className="app-footer">
+				<a className="app-version-link" href={GITHUB_RELEASES_URL} target="_blank" rel="noreferrer">
+					v{APP_VERSION}
+				</a>
+			</footer>
 		</div>
 	);
 }
@@ -561,27 +565,14 @@ function GoogleIconButton({
 }
 
 function ZonePanel({
-	group,
 	items,
-	activeTypeLabel,
 	isRefreshing,
 }: {
-	group: NavigationGroup;
 	items: NavigationItem[];
-	activeTypeLabel: string;
 	isRefreshing: boolean;
 }) {
 	return (
 		<section className="group-panel">
-			<div className="group-head">
-				<div>
-					<p className="group-label">托管域名</p>
-					<h2>{group.title}</h2>
-				</div>
-				<p className="group-summary">
-					{activeTypeLabel} · {items.length} 条
-				</p>
-			</div>
 			<div className="link-grid">
 				{items.map((item, index) => (
 					<RecordCard key={`${item.hostname}-${item.recordType}-${item.value}`} item={item} index={index} />
@@ -627,8 +618,6 @@ function RecordCard({ item, index }: { item: NavigationItem; index: number }) {
 					</span>
 				</div>
 			</div>
-			{(!isStatic || item.title !== item.hostname) && <p className="link-host">{item.hostname}</p>}
-			{item.comment && <p className="link-note">{item.comment}</p>}
 			{isStatic && <p className="link-detail">{item.value}</p>}
 		</>
 	);

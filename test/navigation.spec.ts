@@ -111,8 +111,13 @@ describe('normalization and grouping', () => {
 	it('adds configured path suffixes for mapped hosts', () => {
 		expect(buildNavigationUrl('dash-los1.imjj.cc')).toBe('https://dash-los1.imjj.cc/mKJauEunDk');
 		expect(buildNavigationUrl('dash-los2.imjj.cc')).toBe('https://dash-los2.imjj.cc/HUiDFyB6UM');
+		expect(buildNavigationUrl('dash-los3.imjj.cc')).toBe('https://dash-los3.imjj.cc/b9dd611bac/');
 		expect(buildNavigationUrl('dash-ca1.imjj.cc')).toBe('https://dash-ca1.imjj.cc/MiAd3DmRn8');
 		expect(buildNavigationUrl('dash-s2a.imjj.cc')).toBe('https://dash-s2a.imjj.cc/admin/dashboard');
+	});
+
+	it('normalizes hostnames before applying mapped path suffixes', () => {
+		expect(buildNavigationUrl('DASH-LOS3.IMJJ.CC.')).toBe('https://dash-los3.imjj.cc/b9dd611bac/');
 	});
 
 	it('groups items by managed zone and keeps featured entries first', () => {

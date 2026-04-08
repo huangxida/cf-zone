@@ -5,6 +5,7 @@ export const FEATURED_RECORD_TYPES = new Set(['A', 'AAAA', 'CNAME', 'HTTPS']);
 const HOST_PATHS: Record<string, string> = {
 	'dash-los1.imjj.cc': '/mKJauEunDk',
 	'dash-los2.imjj.cc': '/HUiDFyB6UM',
+	'dash-los3.imjj.cc': '/b9dd611bac/',
 	'dash-ca1.imjj.cc': '/MiAd3DmRn8',
 	'dash-s2a.imjj.cc': '/admin/dashboard',
 };
@@ -124,8 +125,9 @@ export function isFeaturedRecord(record: CloudflareDnsRecord): boolean {
 }
 
 export function buildNavigationUrl(hostname: string): string {
-	const pathname = HOST_PATHS[hostname] ?? '';
-	return `https://${hostname}${pathname}`;
+	const normalizedHostname = hostname.trim().toLowerCase().replace(/\.+$/, '');
+	const pathname = HOST_PATHS[normalizedHostname] ?? '';
+	return `https://${normalizedHostname}${pathname}`;
 }
 
 export function normalizeRecord(record: CloudflareDnsRecord, zoneName: string): NavigationItem {
