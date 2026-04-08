@@ -28,7 +28,7 @@ type Env = {
 };
 
 const CF_API_BASE = 'https://api.cloudflare.com/client/v4';
-const NAVIGATION_CACHE_KEY = 'navigation:sites:v1';
+const NAVIGATION_CACHE_KEY = 'navigation:sites:v2';
 const DEFAULT_CACHE_TTL_SECONDS = 60 * 60 * 24 * 30;
 
 type CachedPayload = Pick<NavigationResponse, 'groups' | 'lastUpdatedAt'>;

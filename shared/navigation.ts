@@ -125,9 +125,24 @@ export function isFeaturedRecord(record: CloudflareDnsRecord): boolean {
 }
 
 export function buildNavigationUrl(hostname: string): string {
-	const normalizedHostname = hostname.trim().toLowerCase().replace(/\.+$/, '');
+	const normalizedHostname = normalizeNavigationHostname(hostname);
 	const pathname = HOST_PATHS[normalizedHostname] ?? '';
 	return `https://${normalizedHostname}${pathname}`;
+}
+
+export function normalizeNavigationHostname(hostname: string): string {
+	return hostname.trim().toLowerCase().replace(/\.+$/, '');
+}
+
+export function normalizeNavigationGroups(groups: NavigationGroup[]): NavigationGroup[] {
+	return groups.map((group) => ({
+		...group,
+		items: group.items.map((item) => ({
+			...item,
+			hostname: normalizeNavigationHostname(item.hostname),
+			url: item.url ? buildNavigationUrl(item.hostname) : null,
+		})),
+	}));
 }
 
 export function normalizeRecord(record: CloudflareDnsRecord, zoneName: string): NavigationItem {

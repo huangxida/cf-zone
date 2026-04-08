@@ -4,6 +4,7 @@ import {
 	buildNavigationUrl,
 	groupItems,
 	isFeaturedRecord,
+	normalizeNavigationGroups,
 	normalizeRecord,
 	parseNavigationComment,
 } from '../shared/navigation';
@@ -118,6 +119,34 @@ describe('normalization and grouping', () => {
 
 	it('normalizes hostnames before applying mapped path suffixes', () => {
 		expect(buildNavigationUrl('DASH-LOS3.IMJJ.CC.')).toBe('https://dash-los3.imjj.cc/b9dd611bac/');
+	});
+
+	it('recomputes clickable item urls from normalized hostnames', () => {
+		expect(
+			normalizeNavigationGroups([
+				{
+					id: 'imjj-cc',
+					title: 'imjj.cc',
+					items: [
+						{
+							group: 'imjj.cc',
+							title: 'los3 panel',
+							hostname: 'DASH-LOS3.IMJJ.CC.',
+							url: 'https://dash-los3.imjj.cc',
+							recordType: 'A',
+							proxied: true,
+							comment: '[nav/ops] los3 panel',
+							zoneName: 'imjj.cc',
+							value: '47.88.27.81',
+							featured: true,
+						},
+					],
+				},
+			])[0]?.items[0],
+		).toMatchObject({
+			hostname: 'dash-los3.imjj.cc',
+			url: 'https://dash-los3.imjj.cc/b9dd611bac/',
+		});
 	});
 
 	it('groups items by managed zone and keeps featured entries first', () => {
