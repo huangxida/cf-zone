@@ -369,7 +369,7 @@ export default function App() {
 
 			<footer className="app-footer">
 				<a className="app-version-link" href={GITHUB_RELEASES_URL} target="_blank" rel="noreferrer">
-					v{APP_VERSION}
+					{APP_VERSION}
 				</a>
 			</footer>
 		</div>
