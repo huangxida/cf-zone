@@ -1,5 +1,4 @@
 import { createElement, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
-import packageJson from '../package.json';
 import type { CurrentUserProfile, CurrentUserResponse } from '../shared/current-user';
 import type {
 	NavigationBanner,
@@ -8,6 +7,10 @@ import type {
 	NavigationItem,
 	NavigationResponse,
 } from '../shared/navigation';
+import { normalizeNavigationGroups } from '../shared/navigation';
+
+declare const __APP_VERSION__: string;
+declare const __APP_RELEASE_URL__: string;
 
 type Status = 'idle' | 'loading' | 'ready' | 'error';
 type UserStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -35,12 +38,12 @@ type LocalCacheResult = {
 };
 
 const TYPE_SORT_ORDER = ['featured', 'all', 'A', 'AAAA', 'CNAME', 'HTTPS', 'MX', 'TXT', 'CAA', 'NS', 'SRV'];
-const LOCAL_CACHE_KEY = 'cf-zone:navigation-cache:v1';
+const LOCAL_CACHE_KEY = 'cf-zone:navigation-cache:v2';
 const THEME_PREFERENCE_KEY = 'cf-zone:theme-preference:v1';
 const THEME_MENU_ANCHOR_ID = 'theme-menu-anchor';
 const USER_MENU_ANCHOR_ID = 'user-menu-anchor';
-const APP_VERSION = packageJson.version;
-const GITHUB_RELEASES_URL = 'https://github.com/huangxida/cf-zone/releases';
+const APP_VERSION = __APP_VERSION__;
+const GITHUB_RELEASES_URL = __APP_RELEASE_URL__;
 const THEME_OPTIONS: ThemeOption[] = [
 	{ value: 'system', label: '跟随系统', icon: 'desktop_windows' },
 	{ value: 'light', label: '白色', icon: 'light_mode' },
@@ -618,6 +621,7 @@ function RecordCard({ item, index }: { item: NavigationItem; index: number }) {
 					</span>
 				</div>
 			</div>
+			{(!isStatic || item.title !== item.hostname) && <p className="link-host">{item.hostname}</p>}
 			{isStatic && <p className="link-detail">{item.value}</p>}
 		</>
 	);
@@ -1194,7 +1198,7 @@ function normalizeNavigationResponse(value: unknown): NavigationResponse | null 
 	}
 
 	return {
-		groups: candidate.groups as NavigationGroup[],
+		groups: normalizeNavigationGroups(candidate.groups as NavigationGroup[]),
 		lastUpdatedAt:
 			typeof candidate.lastUpdatedAt === 'string'
 				? candidate.lastUpdatedAt

@@ -110,7 +110,7 @@ describe('worker api', () => {
 			featured: false,
 		});
 
-		const cachedEntry = kv.entries.get('navigation:sites:v1');
+		const cachedEntry = kv.entries.get('navigation:sites:v2');
 		expect(cachedEntry).toBeDefined();
 		expect(cachedEntry?.metadata).toMatchObject({
 			lastUpdatedAt: payload.lastUpdatedAt,

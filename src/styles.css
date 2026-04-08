@@ -814,8 +814,8 @@ md-outlined-icon-button.google-icon-button {
 }
 
 .link-card {
-	height: 124px;
-	min-height: 124px;
+	height: 144px;
+	min-height: 144px;
 	padding: 16px;
 	border-radius: 18px;
 	border: 1px solid var(--line);
@@ -841,8 +841,8 @@ md-outlined-icon-button.google-icon-button {
 }
 
 .link-card.is-static {
-	height: 148px;
-	min-height: 148px;
+	height: 156px;
+	min-height: 156px;
 }
 
 .link-card.copy-card {
@@ -942,6 +942,17 @@ md-outlined-icon-button.google-icon-button {
 .link-badge.is-dns {
 	background: var(--badge-dns-bg);
 	color: var(--badge-dns-text);
+}
+
+.link-host {
+	margin: 0;
+	font-size: 0.86rem;
+	color: var(--muted);
+	word-break: break-all;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 1;
+	overflow: hidden;
 }
 
 .link-detail {
