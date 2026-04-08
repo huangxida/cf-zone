@@ -1,4 +1,5 @@
 import { createElement, type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import packageJson from '../package.json';
 import type { CurrentUserProfile, CurrentUserResponse } from '../shared/current-user';
 import type {
 	NavigationBanner,
@@ -38,6 +39,8 @@ const LOCAL_CACHE_KEY = 'cf-zone:navigation-cache:v1';
 const THEME_PREFERENCE_KEY = 'cf-zone:theme-preference:v1';
 const THEME_MENU_ANCHOR_ID = 'theme-menu-anchor';
 const USER_MENU_ANCHOR_ID = 'user-menu-anchor';
+const APP_VERSION = packageJson.version;
+const GITHUB_RELEASES_URL = 'https://github.com/huangxida/cf-zone/releases';
 const THEME_OPTIONS: ThemeOption[] = [
 	{ value: 'system', label: '跟随系统', icon: 'desktop_windows' },
 	{ value: 'light', label: '白色', icon: 'light_mode' },
@@ -365,6 +368,12 @@ export default function App() {
 					/>
 				)}
 			</main>
+
+			<footer className="app-footer">
+				<a className="app-version-link" href={GITHUB_RELEASES_URL} target="_blank" rel="noreferrer">
+					v{APP_VERSION}
+				</a>
+			</footer>
 		</div>
 	);
 }

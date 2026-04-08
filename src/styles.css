@@ -256,7 +256,7 @@ input {
 	min-height: 100dvh;
 	padding: clamp(12px, 1.7vw, 16px) clamp(16px, 3vw, 28px) clamp(12px, 1.7vw, 16px);
 	display: grid;
-	grid-template-rows: auto auto minmax(0, 1fr);
+	grid-template-rows: auto auto minmax(0, 1fr) auto;
 	gap: 10px;
 	overflow: hidden;
 }
@@ -1017,6 +1017,34 @@ md-outlined-icon-button.google-icon-button {
 
 .state-error {
 	background: var(--state-error-bg);
+}
+
+.app-footer {
+	max-width: 1360px;
+	width: 100%;
+	margin: 0 auto;
+	display: flex;
+	justify-content: center;
+	padding-top: 2px;
+}
+
+.app-version-link {
+	font-size: 0.82rem;
+	line-height: 1.4;
+	color: var(--muted);
+	text-decoration: none;
+	transition: color 0.18s ease;
+}
+
+.app-version-link:hover,
+.app-version-link:focus-visible {
+	color: var(--blue);
+}
+
+.app-version-link:focus-visible {
+	outline: 2px solid var(--focus-outline);
+	outline-offset: 3px;
+	border-radius: 999px;
 }
 
 .loader {
