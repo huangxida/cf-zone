@@ -21,6 +21,7 @@ coverage
 lib-cov
 
 # Tool caches
+.DS_Store
 .grunt
 .npm
 .eslintcache

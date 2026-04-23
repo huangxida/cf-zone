@@ -9,9 +9,10 @@
     "build": "vite build && node scripts/cleanup-worker-build.mjs",
     "preview": "vite preview",
     "deploy": "npm run build && wrangler deploy --config dist/cf_zone/wrangler.json --keep-vars",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types --env-file /dev/null"
   },
   "dependencies": {
     "@material/web": "^2.4.1",
