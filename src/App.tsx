@@ -17,6 +17,14 @@ type UserStatus = 'idle' | 'loading' | 'ready' | 'error';
 type GroupFilter = string;
 type RecordTypeFilter = 'featured' | 'all' | string;
 type ThemeMode = 'system' | 'light' | 'dark';
+type ConfirmActionKind = 'refresh' | 'logout';
+type ConfirmDialogCopy = {
+	title: string;
+	message: string;
+	confirmLabel: string;
+	icon: string;
+};
+
 type FilterOption = {
 	value: RecordTypeFilter;
 	label: string;
@@ -31,6 +39,13 @@ type MaterialMenuElement = HTMLElement & {
 	open: boolean;
 	show: () => void;
 	close: () => void;
+};
+type MaterialDialogElement = HTMLElement & {
+	open: boolean;
+	show: () => Promise<void>;
+	close: (returnValue?: string) => Promise<void>;
+	addEventListener: HTMLElement['addEventListener'];
+	removeEventListener: HTMLElement['removeEventListener'];
 };
 type LocalCacheResult = {
 	payload: NavigationResponse | null;
@@ -78,8 +93,10 @@ export default function App() {
 	const [themeMode, setThemeMode] = useState<ThemeMode>(() => readThemePreference());
 	const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
 	const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+	const [confirmAction, setConfirmAction] = useState<ConfirmActionKind | null>(null);
 	const themeMenuRef = useRef<MaterialMenuElement | null>(null);
 	const userMenuRef = useRef<MaterialMenuElement | null>(null);
+	const confirmDialogRef = useRef<MaterialDialogElement | null>(null);
 
 	useEffect(() => {
 		applyThemePreference(themeMode);
@@ -88,6 +105,24 @@ export default function App() {
 
 	useEffect(() => bindMaterialMenu(themeMenuRef.current, setIsThemeMenuOpen), []);
 	useEffect(() => bindMaterialMenu(userMenuRef.current, setIsUserMenuOpen), []);
+	useEffect(() => bindMaterialDialog(confirmDialogRef.current, () => setConfirmAction(null)), []);
+	useEffect(() => {
+		const dialog = confirmDialogRef.current;
+		if (!dialog) {
+			return;
+		}
+
+		if (confirmAction) {
+			if (!dialog.open) {
+				void dialog.show();
+			}
+			return;
+		}
+
+		if (dialog.open) {
+			void dialog.close();
+		}
+	}, [confirmAction]);
 
 	useEffect(() => {
 		const syncClock = () => setClock(Date.now());
@@ -204,8 +239,9 @@ export default function App() {
 		() => mergeNavigationBanners(payload?.banners ?? [], navigationBanners),
 		[navigationBanners, payload?.banners],
 	);
+	const confirmDialogCopy = getConfirmDialogCopy(confirmAction);
 
-	async function handleForceRefresh() {
+	async function performForceRefresh() {
 		await loadNavigationData({
 			force: true,
 			hasExistingPayload: Boolean(payload),
@@ -216,6 +252,38 @@ export default function App() {
 			setPayload,
 			setStatus,
 		});
+	}
+
+	function requestConfirmAction(kind: ConfirmActionKind) {
+		setConfirmAction(kind);
+	}
+
+	function handleCancelConfirm() {
+		void confirmDialogRef.current?.close('cancel');
+	}
+
+	async function handleConfirmAction() {
+		const action = confirmAction;
+		if (!action) {
+			return;
+		}
+
+		await confirmDialogRef.current?.close('confirm');
+
+		if (action === 'refresh') {
+			await performForceRefresh();
+			return;
+		}
+
+		if (!currentUser?.logoutUrl) {
+			return;
+		}
+
+		window.location.assign(currentUser.logoutUrl);
+	}
+
+	function handleForceRefreshRequest() {
+		requestConfirmAction('refresh');
 	}
 
 	function toggleMaterialMenu(menu: MaterialMenuElement | null) {
@@ -236,13 +304,13 @@ export default function App() {
 		themeMenuRef.current?.close();
 	}
 
-	function handleLogout() {
+	function handleLogoutRequest() {
 		if (!currentUser?.logoutUrl) {
 			return;
 		}
 
 		userMenuRef.current?.close();
-		window.location.assign(currentUser.logoutUrl);
+		requestConfirmAction('logout');
 	}
 
 	return (
@@ -255,7 +323,7 @@ export default function App() {
 							icon="refresh"
 							label="强制刷新"
 							loading={isRefreshing}
-							onClick={() => void handleForceRefresh()}
+							onClick={handleForceRefreshRequest}
 						/>
 
 						<div className="theme-menu">
@@ -291,7 +359,7 @@ export default function App() {
 							isOpen={isUserMenuOpen}
 							menuRef={userMenuRef}
 							onToggle={() => toggleMaterialMenu(userMenuRef.current)}
-							onLogout={handleLogout}
+							onLogout={handleLogoutRequest}
 						/>
 					</div>
 				</div>
@@ -372,10 +440,48 @@ export default function App() {
 					{APP_VERSION}
 				</a>
 			</footer>
-		</div>
+
+		<ConfirmDialog
+			dialogRef={confirmDialogRef}
+			copy={confirmDialogCopy}
+			onCancel={handleCancelConfirm}
+			onConfirm={() => void handleConfirmAction()}
+		/>
+	</div>
 	);
 }
 
+function ConfirmDialog({
+	dialogRef,
+	copy,
+	onCancel,
+	onConfirm,
+}: {
+	dialogRef: RefObject<MaterialDialogElement | null>;
+	copy: ConfirmDialogCopy | null;
+	onCancel: () => void;
+	onConfirm: () => void;
+}) {
+	return (
+		<md-dialog ref={dialogRef} className="confirm-google-dialog" quick>
+			{copy && renderInlineIcon(copy.icon, 'confirm-dialog-icon', 'icon')}
+			<span slot="headline" className="confirm-dialog-headline">
+				{copy?.title ?? ''}
+			</span>
+			<div slot="content" className="confirm-dialog-content">
+				<p className="confirm-dialog-message">{copy?.message ?? ''}</p>
+			</div>
+			<div slot="actions" className="confirm-dialog-actions">
+				<md-outlined-button type="button" onClick={onCancel}>
+					取消
+				</md-outlined-button>
+				<md-filled-tonal-button type="button" onClick={onConfirm} autofocus>
+					{copy?.confirmLabel ?? '确认'}
+				</md-filled-tonal-button>
+			</div>
+		</md-dialog>
+	);
+}
 function UserMenu({
 	currentUser,
 	userStatus,
@@ -1144,6 +1250,40 @@ function bindMaterialMenu(
 		menu.removeEventListener('opened', handleOpened);
 		menu.removeEventListener('closed', handleClosed);
 	};
+}
+
+function bindMaterialDialog(dialog: MaterialDialogElement | null, onClosed: () => void) {
+	if (!dialog) {
+		return undefined;
+	}
+
+	const handleClosed = () => onClosed();
+	dialog.addEventListener('closed', handleClosed);
+
+	return () => {
+		dialog.removeEventListener('closed', handleClosed);
+	};
+}
+
+function getConfirmDialogCopy(action: ConfirmActionKind | null): ConfirmDialogCopy | null {
+	switch (action) {
+		case 'refresh':
+			return {
+				title: '确认强制刷新',
+				message: '这会绕过当前缓存，立即重新从 Cloudflare 拉取最新导航数据。',
+				confirmLabel: '立即刷新',
+				icon: 'refresh',
+			};
+		case 'logout':
+			return {
+				title: '确认退出登录',
+				message: '退出后将清除当前 Cloudflare Access 会话，重新访问时需要再次登录。',
+				confirmLabel: '退出登录',
+				icon: 'logout',
+			};
+		default:
+			return null;
+	}
 }
 
 function getUserMenuSupportingText(
