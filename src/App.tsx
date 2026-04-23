@@ -749,7 +749,7 @@ function RecordCard({ item, index }: { item: NavigationItem; index: number }) {
 	return (
 		<a
 			className="link-card"
-			href={item.url}
+			href={item.url ?? undefined}
 			target="_blank"
 			rel="noreferrer"
 			style={{ animationDelay: `${index * 28}ms` }}
@@ -891,6 +891,10 @@ function compareTypeOrder(left: string, right: string) {
 }
 
 function formatUpdatedDisplay(value: string | null | undefined, now = Date.now()) {
+	if (!value) {
+		return '上次更新时间: --';
+	}
+
 	const parsed = Date.parse(value);
 	if (!Number.isFinite(parsed)) {
 		return '上次更新时间: --';
